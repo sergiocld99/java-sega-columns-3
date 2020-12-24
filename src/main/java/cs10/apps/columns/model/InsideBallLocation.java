@@ -1,5 +1,5 @@
 package cs10.apps.columns.model;
 
-public enum BallInsideLocation {
+public enum InsideBallLocation {
     UP, MEDIUM, DOWN
 }

@@ -1,8 +1,25 @@
 package cs10.apps.columns.model;
 
 public class Player {
-    private int mainScore, secondaryScore;
+    private int number, mainScore, secondaryScore, blockIndex;
     private ThreeBalls nextThreeBalls;
+
+    public Player(int number) {
+        this.number = number;
+    }
+
+    public void incrementBlockIndex(){
+        if (blockIndex == 64) blockIndex = 0;
+        else blockIndex++;
+    }
+
+    public int getNumber() {
+        return number;
+    }
+
+    public void setNumber(int number) {
+        this.number = number;
+    }
 
     public int getMainScore() {
         return mainScore;
@@ -18,6 +35,14 @@ public class Player {
 
     public void setSecondaryScore(int secondaryScore) {
         this.secondaryScore = secondaryScore;
+    }
+
+    public int getBlockIndex() {
+        return blockIndex;
+    }
+
+    public void setBlockIndex(int blockIndex) {
+        this.blockIndex = blockIndex;
     }
 
     public ThreeBalls getNextThreeBalls() {

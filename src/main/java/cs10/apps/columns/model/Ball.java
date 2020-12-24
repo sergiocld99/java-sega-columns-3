@@ -3,22 +3,22 @@ package cs10.apps.columns.model;
 import cs10.apps.columns.view.BallColor;
 
 public class Ball {
-    private BallInsideLocation ballInsideLocation;
+    private InsideBallLocation insideBallLocation;
     private BallColor ballColor;
     private boolean blackAndWhite = false;
     private boolean isPower = false;
 
-    public Ball(BallInsideLocation ballInsideLocation, BallColor ballColor) {
-        this.ballInsideLocation = ballInsideLocation;
+    public Ball(InsideBallLocation insideBallLocation, BallColor ballColor) {
+        this.insideBallLocation = insideBallLocation;
         this.ballColor = ballColor;
     }
 
-    public BallInsideLocation getBallInsideLocation() {
-        return ballInsideLocation;
+    public InsideBallLocation getBallInsideLocation() {
+        return insideBallLocation;
     }
 
-    public void setBallInsideLocation(BallInsideLocation ballInsideLocation) {
-        this.ballInsideLocation = ballInsideLocation;
+    public void setBallInsideLocation(InsideBallLocation insideBallLocation) {
+        this.insideBallLocation = insideBallLocation;
     }
 
     public BallColor getColorBall() {

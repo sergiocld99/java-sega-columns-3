@@ -59,19 +59,9 @@ public class GameView extends JFrame {
         mainPanel.add(boardPanel, gbc);
     }
 
-    public BlockView getBlockView1() {
-        return blockView1;
-    }
-
-    public void setBlockView1(BlockView blockView1) {
-        this.blockView1 = blockView1;
-    }
-
-    public BlockView getBlockView2() {
-        return blockView2;
-    }
-
-    public void setBlockView2(BlockView blockView2) {
-        this.blockView2 = blockView2;
+    public BlockView getBlockView(int playerNumber){
+        if (playerNumber == 1) return blockView1;
+        else if (playerNumber == 2) return blockView2;
+        else throw new RuntimeException("Invalid Player Number");
     }
 }

@@ -14,17 +14,22 @@ public class Game {
     private GameView gameView;
 
     public void start(){
-        player1 = new Player();
-        player2 = new Player();
+        player1 = new Player(1);
+        player2 = new Player(2);
         gameView = new GameView();
 
-        ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-        scheduledExecutorService.scheduleAtFixedRate(this::changeBlocks, 1,5, TimeUnit.SECONDS);
+        // AUTO-PLAYER 1
+        ScheduledExecutorService ses1 = Executors.newSingleThreadScheduledExecutor();
+        ses1.scheduleAtFixedRate(() -> changeBlocks(player1), 1,5, TimeUnit.SECONDS);
+
+        // AUTO-PLAYER 2
+        ScheduledExecutorService ses2 = Executors.newSingleThreadScheduledExecutor();
+        ses2.scheduleAtFixedRate(() -> changeBlocks(player2), 1,8, TimeUnit.SECONDS);
     }
 
-    private void changeBlocks(){
-        ThreeBalls threeBalls = ballGenerator.generate();
-        gameView.getBlockView1().setBlock(threeBalls);
-        gameView.getBlockView2().setBlock(threeBalls);
+    private void changeBlocks(Player player){
+        ThreeBalls threeBalls = ballGenerator.getNext(player.getBlockIndex());
+        gameView.getBlockView(player.getNumber()).setBlock(threeBalls);
+        player.incrementBlockIndex();
     }
 }
