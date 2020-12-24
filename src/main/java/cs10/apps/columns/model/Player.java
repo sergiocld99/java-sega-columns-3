@@ -1,16 +1,24 @@
 package cs10.apps.columns.model;
 
+import cs10.apps.columns.core.Board;
+
 public class Player {
-    private int number, mainScore, secondaryScore, blockIndex;
-    private ThreeBalls nextThreeBalls;
+    private int number, mainScore, smallScore, blockIndex;
+    private Block nextBlock;
+    private FallingBlock fallingBlock;
+    private Board board;
 
     public Player(int number) {
         this.number = number;
     }
 
     public void incrementBlockIndex(){
-        if (blockIndex == 64) blockIndex = 0;
-        else blockIndex++;
+        if (++blockIndex == 64) blockIndex = 0;
+    }
+
+    public void nextFallingBlock(){
+        System.out.println("Changing falling block");
+        setFallingBlock(new FallingBlock(nextBlock, board));
     }
 
     public int getNumber() {
@@ -29,12 +37,12 @@ public class Player {
         this.mainScore = mainScore;
     }
 
-    public int getSecondaryScore() {
-        return secondaryScore;
+    public int getSmallScore() {
+        return smallScore;
     }
 
-    public void setSecondaryScore(int secondaryScore) {
-        this.secondaryScore = secondaryScore;
+    public void setSmallScore(int smallScore) {
+        this.smallScore = smallScore;
     }
 
     public int getBlockIndex() {
@@ -45,11 +53,28 @@ public class Player {
         this.blockIndex = blockIndex;
     }
 
-    public ThreeBalls getNextThreeBalls() {
-        return nextThreeBalls;
+    public Block getNextBlock() {
+        return nextBlock;
     }
 
-    public void setNextThreeBalls(ThreeBalls nextThreeBalls) {
-        this.nextThreeBalls = nextThreeBalls;
+    public void setNextBlock(Block nextBlock) {
+        this.nextBlock = nextBlock;
+    }
+
+    public FallingBlock getFallingBlock() {
+        while (fallingBlock == null) System.out.println("I'm waiting for falling block");
+        return fallingBlock;
+    }
+
+    public void setFallingBlock(FallingBlock fallingBlock) {
+        this.fallingBlock = fallingBlock;
+    }
+
+    public Board getBoard() {
+        return board;
+    }
+
+    public void setBoard(Board board) {
+        this.board = board;
     }
 }
