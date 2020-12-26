@@ -1,13 +1,11 @@
 package cs10.apps.columns.core;
 
-import cs10.apps.columns.model.Player;
 import cs10.apps.columns.model.Block;
+import cs10.apps.columns.model.FallingBlock;
+import cs10.apps.columns.model.Player;
+import cs10.apps.columns.sound.SoundUtils;
 import cs10.apps.columns.view.GameView;
 
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.Clip;
-import java.io.File;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -16,53 +14,115 @@ public class Game {
     private final BlockGenerator blockGenerator = new BlockGenerator();
     private final Player player1, player2;
     private final GameView gameView;
+    private ScheduledExecutorService autoFallService, autoFallService2;
     private int secondsActual = 0;
 
+    private boolean started = false;
+
     public Game(){
-        player1 = new Player(1);
-        player2 = new Player(2);
+        player1 = new Player(1, true);
+        player2 = new Player(2, true);
         gameView = new GameView();
 
-        player1.setBoard(new Board());
-        player2.setBoard(new Board());
+        player1.setOtherPlayerReference(player2);
+        player2.setOtherPlayerReference(player1);
         updateNextBlock(player1, false);
         updateNextBlock(player2, false);
+
+        gameView.getBoardView(1).setBoard(player1.getBoard());
+        gameView.getBoardView(2).setBoard(player2.getBoard());
+        gameView.getMainScoreView(1).setPlayer(player1);
+        gameView.getMainScoreView(2).setPlayer(player2);
+        gameView.getNextBlockView(1).setBlock(player1.getNextBlock());
+        gameView.getNextBlockView(2).setBlock(player2.getNextBlock());
     }
 
     public void start(){
+        started = true;
+
+        SoundUtils.playSound("startGame");
+
         try {
-            Thread.sleep(1500);
+            Thread.sleep(3500);
         } catch (InterruptedException e){
             e.printStackTrace();
         }
 
-        // AUTO-FALL BLOCK
-        ScheduledExecutorService autoFallService = Executors.newSingleThreadScheduledExecutor();
+        // TIME
+        ScheduledExecutorService timeService = Executors.newSingleThreadScheduledExecutor();
+        timeService.scheduleAtFixedRate(() -> {
+            gameView.getTimeView().setSeconds(++secondsActual);
+            if (secondsActual == 3600) timeService.shutdown();
+        }, 1,1, TimeUnit.SECONDS);
+
+
+        // AUTO-FALL BLOCK FOR PLAYER 1
+        autoFallService = Executors.newSingleThreadScheduledExecutor();
         autoFallService.scheduleAtFixedRate(() -> {
-            boolean could = player1.getFallingBlock().getPosition().moveDown();
-            if (!could) nextFallingBlock(player1);
-        }, 1200,500, TimeUnit.MILLISECONDS);
+            if (player1.getBoard().getExplosionHelper().isRunning())
+                return;
+
+            gameView.getNextBlockView(1).setBlock(player1.getNextBlock());
+            player1.checkForMagicStone();
+
+            FallingBlock fallingBlock = player1.getFallingBlock();
+            boolean could = fallingBlock.moveDown(false);
+            if (!could) {
+                SoundUtils.playSound("blockPositioned");
+
+                if (fallingBlock.isLose()) {
+                    SoundUtils.playSound("boardSetException");
+                    autoFallService.shutdown();
+                    autoFallService2.shutdown();
+                    timeService.shutdown();
+                } else {
+                    nextFallingBlock(player1);
+                }
+            }
+        }, 1200,50, TimeUnit.MILLISECONDS);
+
+
+        // AUTO-FALL BLOCK FOR PLAYER 2
+        autoFallService2 = Executors.newSingleThreadScheduledExecutor();
+        autoFallService2.scheduleAtFixedRate(() -> {
+            if (player2.getBoard().getExplosionHelper().isRunning())
+                return;
+
+            gameView.getNextBlockView(2).setBlock(player2.getNextBlock());
+            player2.checkForMagicStone();
+
+            FallingBlock fallingBlock = player2.getFallingBlock();
+            boolean could = fallingBlock.moveDown(false);
+            if (!could) {
+                SoundUtils.playSound("blockPositioned");
+
+                if (fallingBlock.isLose()) {
+                    SoundUtils.playSound("boardSetException");
+                    autoFallService2.shutdown();
+                    autoFallService.shutdown();
+                    timeService.shutdown();
+                } else {
+                    nextFallingBlock(player2);
+                }
+            }
+        }, 1200,50, TimeUnit.MILLISECONDS);
 
 
         // AUTO-UPDATE BOARD VIEW
         ScheduledExecutorService fallViewService = Executors.newSingleThreadScheduledExecutor();
         fallViewService.scheduleAtFixedRate(() -> {
             gameView.getBoardView(1).paintFallingBlock(player1.getFallingBlock());
+            gameView.getBoardView(2).paintFallingBlock(player2.getFallingBlock());
+            updateScoreViews(player1);
+            updateScoreViews(player2);
         }, 50, 20, TimeUnit.MILLISECONDS);
 
 
-        // TIME
-        ScheduledExecutorService ses3 = Executors.newSingleThreadScheduledExecutor();
-        ses3.scheduleAtFixedRate(() -> {
-                gameView.getTimeView().setSeconds(++secondsActual);
-                if (secondsActual == 3600) ses3.shutdown();
-            }, 1,1, TimeUnit.SECONDS);
-
-
         // MUSIC
-        playBgMusic();
+        SoundUtils.playMusic("music3");
 
         nextFallingBlock(player1);
+        nextFallingBlock(player2);
     }
 
     private void nextFallingBlock(Player player){
@@ -70,8 +130,12 @@ public class Game {
         updateNextBlock(player, true);
     }
 
+    private void updateScoreViews(Player player){
+        gameView.getMainScoreView(player.getNumber()).update();
+        gameView.getSmallScoreView(player.getNumber()).setNumber(player.getSmallScore());
+    }
+
     private void updateNextBlock(Player player, boolean delay){
-        System.out.println("Changing next block");
         Block block = blockGenerator.getNext(player.getBlockIndex());
         player.setNextBlock(block);
         player.incrementBlockIndex();
@@ -82,22 +146,22 @@ public class Game {
             } catch (InterruptedException e){
                 e.printStackTrace();
             }
-            gameView.getNextBlockView(player.getNumber()).setBlock(block);
+
+            //gameView.getMainScoreView(player.getNumber()).setNumber(player.getMainScore());
+            //gameView.getSmallScoreView(player.getNumber()).setNumber(player.getSmallScore());
         }).start();
     }
 
-    private void playBgMusic(){
-        new Thread(() -> {
-            try {
-                Clip clip = AudioSystem.getClip();
-                File file = new File("src/main/resources/explorer.wav");
-                AudioInputStream inputStream = AudioSystem.getAudioInputStream(file);
-                clip.open(inputStream);
-                clip.loop(Clip.LOOP_CONTINUOUSLY);
-                clip.start();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
+    public boolean isStarted() {
+        return started;
+    }
+
+    public FallingBlock getFallingBlock() {
+        if (!started) throw new RuntimeException("Game not started yet");
+        return player1.getFallingBlock();
+    }
+
+    public Player getPlayer1() {
+        return player1;
     }
 }

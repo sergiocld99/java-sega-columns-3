@@ -4,8 +4,8 @@ import java.awt.*;
 
 public enum BallColor {
     RED(new Color(255, 0, 0)),
-    ORANGE(new Color(200,100,0)),
-    YELLOW(Color.yellow),
+    //ORANGE(new Color(200,100,0)),
+    //YELLOW(Color.yellow),
     GREEN(new Color(14, 165, 14)),
     BLUE(Color.cyan),
     PURPLE(new Color(252, 3, 252));

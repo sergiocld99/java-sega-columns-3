@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Random;
 
 public class BlockGenerator {
-    private final Random random = new Random();
+    private static final Random random = new Random();
     private final List<Block> list = new ArrayList<>(64);
 
     public BlockGenerator() {
@@ -29,7 +29,7 @@ public class BlockGenerator {
         return new Block(ball1, ball2, ball3);
     }
 
-    private BallColor generateColor(){
+    public static BallColor generateColor(){
         BallColor[] ballColors = BallColor.values();
         return ballColors[random.nextInt(ballColors.length)];
     }
