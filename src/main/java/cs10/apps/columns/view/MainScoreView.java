@@ -9,6 +9,7 @@ import java.awt.*;
 public class MainScoreView extends JPanel {
     private final JLabel label;
     private Player player;
+    private int tick = 0;
 
     public MainScoreView(){
         setPreferredSize(new Dimension(60,50));
@@ -33,6 +34,11 @@ public class MainScoreView extends JPanel {
 
     private void setNumber(int number) {
         label.setText(String.valueOf(number));
+        ++tick;
+
+        if (number == 30){
+            if (tick % 5 == 0) label.setVisible(!label.isVisible());
+        } else label.setVisible(true);
     }
 
     public void setPlayer(Player player) {

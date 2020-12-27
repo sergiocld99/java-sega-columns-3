@@ -5,9 +5,12 @@ import cs10.apps.columns.model.Player;
 import cs10.apps.columns.model.Position;
 import cs10.apps.columns.sound.SoundUtils;
 import cs10.apps.columns.view.BallColor;
+import cs10.apps.columns.view.ItemMagicStone;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static cs10.apps.columns.view.ItemMagicStone.SQUARE;
 
 public class Board {
     public static final int MAX_X = 6, MAX_Y = 13;
@@ -15,7 +18,7 @@ public class Board {
     private final ExplosionHelper explosionHelper;
     private final int[] columnsHeight = new int[MAX_X];
     private final Player playerReference;
-    private static final boolean EXPLODE_RANDOM = false;
+    private static final boolean AUTO_MAGIC_STONE = true;
     private int lines, futureLines, pendingIncrements, pendingDecrements;
 
     public Board(Player playerReference){
@@ -23,23 +26,37 @@ public class Board {
         this.playerReference = playerReference;
     }
 
-    public void explodeRandomColor(){
-        if (!EXPLODE_RANDOM) return;
-        BallColor color1 = BlockGenerator.generateColor();
-        BallColor color2 = BlockGenerator.generateColor();
-        List<Position> positions = new ArrayList<>();
-        System.out.println("Changing color " + color1 + " to " + color2);
+    public void applyMagicStone(ItemMagicStone action, int xa, int ya){
 
-        for (int x=0; x<MAX_X; x++){
-            for (int y=MAX_Y-3; y<MAX_Y; y++){
-                if (!isEmpty(x,y) && getColor(x,y) == color1) {
-                    positions.add(new Position(x,y));
-                    set(x, y, new Ball(color2));
+        switch (action) {
+            case DOWN_TRIANGLE -> decreaseLines(3);
+            case UP_TRIANGLE -> playerReference.getOtherPlayerReference().getBoard().increaseLines(2);
+            case SQUARE -> {
+                BallColor color1 = getColor(xa, ya);
+                List<Position> positions = new ArrayList<>();
+                for (int x = 0; x < MAX_X; x++) {
+                    for (int y = 0; y < MAX_Y; y++) {
+                        if (!isEmpty(x, y)) {
+                            if (getColor(x, y) == color1) {
+                                positions.add(new Position(x, y));
+                            }
+                        }
+                    }
                 }
+                explosionHelper.explode(0, 1, positions.toArray(new Position[0]));
             }
         }
+    }
 
-        explosionHelper.explode(0, 1, positions.toArray(new Position[0]));
+    public ItemMagicStone getRecommendedMagicStoneAction(){
+        ItemMagicStone result;
+
+        if (lines > 3) result = ItemMagicStone.DOWN_TRIANGLE;
+        else if (isEmpty(2,MAX_Y-lines-1)) result = ItemMagicStone.UP_TRIANGLE;
+        else result = ItemMagicStone.SQUARE;
+
+        System.out.println("Lines: " + lines + " || " + result.name());
+        return result;
     }
 
     public synchronized Ball get(int x, int y) {
@@ -60,7 +77,7 @@ public class Board {
         } else return ball.getColorBall();
     }
 
-    public synchronized void set(int x, int y, Ball ball) {
+    public void set(int x, int y, Ball ball) {
         matrix[x][y] = ball;
     }
 
@@ -194,12 +211,7 @@ public class Board {
     }
 
     public int getLines() {
-        if (lines < 0) throw new RuntimeException("Line is a negative number!");
+        if (lines < 0) System.err.println("Lines is a negative number!");
         return lines;
-    }
-
-    public void resetAuxVariables(){
-        pendingIncrements = 0;
-        pendingDecrements = 0;
     }
 }

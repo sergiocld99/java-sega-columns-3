@@ -4,6 +4,7 @@ import cs10.apps.columns.core.Board;
 import cs10.apps.columns.model.Ball;
 import cs10.apps.columns.model.FallingBlock;
 import cs10.apps.columns.model.FallingPosition;
+import cs10.apps.columns.model.MagicStone;
 
 import javax.swing.*;
 import java.awt.*;
@@ -27,9 +28,18 @@ public class BoardView extends JPanel {
     }
 
     public void paintFallingBlock(FallingBlock fallingBlock){
-        falling1.setBall(fallingBlock.getBall1());
-        falling2.setBall(fallingBlock.getBall2());
-        falling3.setBall(fallingBlock.getBall3());
+        MagicStone magicStone = fallingBlock.getMagicStone();
+
+        if (magicStone != null){
+            falling1.setItemMagicStone(magicStone.getItem(1));
+            falling2.setItemMagicStone(magicStone.getItem(2));
+            falling3.setItemMagicStone(magicStone.getItem(3));
+        } else {
+            falling1.setBall(fallingBlock.getBall1());
+            falling2.setBall(fallingBlock.getBall2());
+            falling3.setBall(fallingBlock.getBall3());
+        }
+
         basePosition = fallingBlock.getPosition();
         repaint();
     }

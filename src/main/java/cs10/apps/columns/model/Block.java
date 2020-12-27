@@ -30,8 +30,8 @@ public class Block {
         }
     }
 
-    public boolean sameColor(int n1, int n2){
-        return balls[n1].getColorBall() == balls[n2].getColorBall();
+    public boolean differentColor(int n1, int n2){
+        return balls[n1].getColorBall() != balls[n2].getColorBall();
     }
 
     public Ball getBall1() {

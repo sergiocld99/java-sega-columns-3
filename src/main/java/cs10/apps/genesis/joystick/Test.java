@@ -8,6 +8,7 @@ public class Test {
 
     public Test(){
         game = new Game();
+        game.start();
     }
 
     public void readJoystickEvents(){

@@ -29,24 +29,30 @@ public class ExplosionHelper {
         running = true;
 
         thread = new Thread(() -> {
-            List<Position> result = check(positions);
+            int minCount = (scoreBase == 0 && chain == 1) ? 1 : 3;
+
+            List<Position> result = check(minCount, positions);
             if (result.isEmpty()) {
                 running = false;
                 return;
             }
 
             Set<Position> resultsWithoutRepeats = new HashSet<>(result);
-            playerReference.incrementMainScore(scoreBase * (resultsWithoutRepeats.size() - 2));
-            if (scoreBase > 0) playerReference.incrementSmallScore(resultsWithoutRepeats.size() - 2);
+            Set<BallColor> colors = new HashSet<>();
             Thread[] threads = new Thread[resultsWithoutRepeats.size()];
             int index = 0;
 
             for (Position p : resultsWithoutRepeats){
-                Runnable runnable;
-                runnable = () -> animate(p.getX(), p.getY());
+                colors.add(getColor(p.getX(), p.getY()));
+                Runnable runnable = () -> animate(p.getX(), p.getY());
                 threads[index] = new Thread(runnable);
                 threads[index++].start();
             }
+
+            int score = (resultsWithoutRepeats.size() - 2) / colors.size();
+
+            playerReference.incrementMainScore(scoreBase * score);
+            if (scoreBase > 0) playerReference.incrementSmallScore(score);
 
             try {
                 SoundUtils.playSound("explode" + Math.min(chain, 6));
@@ -81,7 +87,7 @@ public class ExplosionHelper {
     private void animate(int x, int y){
         Ball value = matrixReference[x][y];
 
-        CountDownLatch latch = new CountDownLatch(10);
+        CountDownLatch latch = new CountDownLatch(6);
         ScheduledExecutorService animationService = Executors.newSingleThreadScheduledExecutor();
         animationService.scheduleAtFixedRate(() -> {
             if (matrixReference[x][y] != null) matrixReference[x][y] = null;
@@ -156,7 +162,7 @@ public class ExplosionHelper {
         return true;
     }
 
-    private List<Position> check(Position... positions){
+    private List<Position> check(int minCount, Position... positions){
         List<Position> result = new ArrayList<>();
         //Set<BallColor> colors = new HashSet<>();
 
@@ -165,9 +171,9 @@ public class ExplosionHelper {
             //if (colors.contains(actual)) continue;
 
             //int originalSize = result.size();
-            checkHorizontal(p.getX(), p.getY(), result);
-            checkDiagonals(p.getX(), p.getY(), result);
-            checkVertical(p.getX(), p.getY(), result);
+            checkHorizontal(p.getX(), p.getY(), result, minCount);
+            checkDiagonals(p.getX(), p.getY(), result, minCount);
+            checkVertical(p.getX(), p.getY(), result, minCount);
             //if (result.size() > originalSize) colors.add(actual);
         }
 
@@ -184,40 +190,36 @@ public class ExplosionHelper {
         return result;
     }
 
-    private void checkDiagonals(int x, int y, List<Position> result){
+    private void checkDiagonals(int x, int y, List<Position> result, int minCount){
         List<Position> aux = new ArrayList<>();
         aux.add(new Position(x,y));
         checkDiagonal1(x,y,aux);
         checkDiagonal4(x,y,aux);
-        if (aux.size() > 2) result.addAll(aux);
+        if (aux.size() >= minCount) result.addAll(aux);
 
         aux.clear();
         aux.add(new Position(x,y));
         checkDiagonal2(x,y,aux);
         checkDiagonal3(x,y,aux);
-        if (aux.size() > 2) result.addAll(aux);
+        if (aux.size() >= minCount) result.addAll(aux);
     }
 
-    private void checkHorizontal(int x, int y, List<Position> result){
+    private void checkHorizontal(int x, int y, List<Position> result, int minCount){
         List<Position> aux = new ArrayList<>();
         aux.add(new Position(x,y));
         checkLeft(x, y, aux);
         checkRight(x, y, aux);
 
-        if (aux.size() > 2){
-            result.addAll(aux);
-        }
+        if (aux.size() >= minCount) result.addAll(aux);
     }
 
-    private void checkVertical(int x, int y, List<Position> result){
+    private void checkVertical(int x, int y, List<Position> result, int minCount){
         List<Position> aux = new ArrayList<>();
         aux.add(new Position(x,y));
         checkUp(x,y, aux);
         checkDown(x,y,aux);
 
-        if (aux.size() > 2){
-            result.addAll(aux);
-        }
+        if (aux.size() >= minCount) result.addAll(aux);
     }
 
     private void checkLeft(int xr, int y, List<Position> result){

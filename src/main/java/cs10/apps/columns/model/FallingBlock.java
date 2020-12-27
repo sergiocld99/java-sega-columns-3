@@ -5,24 +5,36 @@ import cs10.apps.columns.core.Board;
 public class FallingBlock extends Block {
     private final FallingPosition position;
     private final Board referencedBoard;
+    private MagicStone magicStone;
+    private AutoMoveParameters parameters;
     private boolean lose;
 
-    private boolean cpu, autoRotation, rotateTwoColorsDown;
-    private int targetColumn, targetRotations, offset = 30;
+    private boolean cpu;
+    private int offset = 30;
 
-    public FallingBlock(Block block, Board referencedBoard, int column, boolean cpu){
+    public FallingBlock(Block block, Board referencedBoard, boolean cpu, boolean magicStone){
         super(block.getBall1(), block.getBall2(), block.getBall3());
+        if (magicStone) setMagicStone(new MagicStone());
         this.referencedBoard = referencedBoard;
         this.cpu = cpu;
-        position = new FallingPosition(column,-1);
+        position = new FallingPosition(2,-1);
+    }
+
+    public void setParameters(AutoMoveParameters parameters) {
+        this.parameters = parameters;
     }
 
     public void rotate() {
-        Ball[] result = new Ball[3];
-        result[0] = balls[2];
-        result[1] = balls[0];
-        result[2] = balls[1];
-        balls = result;
+        if (magicStone != null) {
+            System.out.println("Target Rotations: " + parameters.getTargetRotations());
+            magicStone.rotate();
+        } else {
+            Ball[] result = new Ball[3];
+            result[0] = balls[2];
+            result[1] = balls[0];
+            result[2] = balls[1];
+            balls = result;
+        }
     }
 
     public FallingPosition getPosition() {
@@ -63,33 +75,39 @@ public class FallingBlock extends Block {
         if (offset-- % 10 == 0) position.changeY(0.5);
         if (offset < 0) offset = 19;
 
-        if (position.getX() > targetColumn){
+        if (position.getX() > parameters.getTargetColumn()){
             if (offset == 4 || offset == 9) moveLeft();
             return;
-        } else if (position.getX() < targetColumn){
+        } else if (position.getX() < parameters.getTargetColumn()){
             if (offset == 4 || offset == 9) moveRight();
             return;
         }
 
-        if (autoRotation){
+        if (parameters.isAutoRotation()){
 
-            if (targetRotations > 0){
-                targetRotations--;
-                autoRotation = targetRotations > 0;
-                if (offset % 5 == 4) rotate();
+            if (parameters.getTargetRotations() > 0){
+                if (offset % 5 == 4) {
+                    parameters.decreaseTargetRotations();
+                    rotate();
+                    parameters.setAutoRotation(parameters.getTargetRotations() > 0);
+                }
                 return;
             }
 
-            if (rotateTwoColorsDown){
-                if (!sameColor(1,2)) {
-                    if (offset % 5 == 4) rotate();
+            if (parameters.isRotateTwoColorsDown()){
+                if (differentColor(1, 2)) {
+                    if (offset % 5 == 4) {
+                        rotate();
+                    }
                 }
-                else autoRotation = false;
+                else parameters.setAutoRotation(false);
             } else {
-                if (!sameColor(0,1)) {
-                    if (offset % 5 == 4) rotate();
+                if (differentColor(0, 1)) {
+                    if (offset % 5 == 4) {
+                        rotate();
+                    }
                 }
-                else autoRotation = false;
+                else parameters.setAutoRotation(false);
             }
 
             return;
@@ -103,7 +121,7 @@ public class FallingBlock extends Block {
         }
     }
 
-    public synchronized boolean moveDown(boolean voluntary){
+    public boolean moveDown(boolean voluntary){
         if (voluntary && referencedBoard.getExplosionHelper().isRunning())
             return false;
 
@@ -117,6 +135,13 @@ public class FallingBlock extends Block {
                 lose = true;
                 return false;
             }
+
+            // MAGIC STONE ACTION
+            if (magicStone != null){
+                referencedBoard.applyMagicStone(magicStone.getItem(3), x, y+1);
+                return false;
+            }
+
 
             referencedBoard.set(x, y, getBall3());
 
@@ -151,20 +176,11 @@ public class FallingBlock extends Block {
         return lose;
     }
 
-    public void setAutoRotation(boolean autoRotation) {
-        //System.out.println("Setting autorotation " + autoRotation);
-        this.autoRotation = autoRotation;
+    public MagicStone getMagicStone() {
+        return magicStone;
     }
 
-    public void setRotateTwoColorsDown(boolean rotateTwoColorsDown) {
-        this.rotateTwoColorsDown = rotateTwoColorsDown;
-    }
-
-    public void setTargetColumn(int targetColumn) {
-        this.targetColumn = targetColumn;
-    }
-
-    public void setTargetRotations(int targetRotations) {
-        this.targetRotations = targetRotations;
+    public void setMagicStone(MagicStone magicStone) {
+        this.magicStone = magicStone;
     }
 }

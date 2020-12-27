@@ -10,19 +10,19 @@ import java.util.Random;
 
 public class BlockGenerator {
     private static final Random random = new Random();
-    private final List<Block> list = new ArrayList<>(64);
+    private static final List<Block> list = new ArrayList<>(64);
 
-    public BlockGenerator() {
+    public static void build(){
         for (int i=0; i<64; i++){
             list.add(generate());
         }
     }
 
-    public Block getNext(int position){
+    public static Block getNext(int position){
         return list.get(position);
     }
 
-    private Block generate(){
+    private static Block generate(){
         Ball ball1 = new Ball(generateColor());
         Ball ball2 = new Ball(generateColor());
         Ball ball3 = new Ball(generateColor());

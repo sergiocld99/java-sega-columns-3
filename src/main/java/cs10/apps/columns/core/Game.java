@@ -1,6 +1,5 @@
 package cs10.apps.columns.core;
 
-import cs10.apps.columns.model.Block;
 import cs10.apps.columns.model.FallingBlock;
 import cs10.apps.columns.model.Player;
 import cs10.apps.columns.sound.SoundUtils;
@@ -11,7 +10,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class Game {
-    private final BlockGenerator blockGenerator = new BlockGenerator();
     private final Player player1, player2;
     private final GameView gameView;
     private ScheduledExecutorService autoFallService, autoFallService2;
@@ -20,6 +18,8 @@ public class Game {
     private boolean started = false;
 
     public Game(){
+        BlockGenerator.build();
+
         player1 = new Player(1, true);
         player2 = new Player(2, true);
         gameView = new GameView();
@@ -63,7 +63,7 @@ public class Game {
                 return;
 
             gameView.getNextBlockView(1).setBlock(player1.getNextBlock());
-            player1.checkForMagicStone();
+            player1.checkForAutoPush();
 
             FallingBlock fallingBlock = player1.getFallingBlock();
             boolean could = fallingBlock.moveDown(false);
@@ -72,8 +72,9 @@ public class Game {
 
                 if (fallingBlock.isLose()) {
                     SoundUtils.playSound("boardSetException");
+                    player2.destroyFallingBlock();
                     autoFallService.shutdown();
-                    autoFallService2.shutdown();
+                    //autoFallService2.shutdown();
                     timeService.shutdown();
                 } else {
                     nextFallingBlock(player1);
@@ -89,7 +90,7 @@ public class Game {
                 return;
 
             gameView.getNextBlockView(2).setBlock(player2.getNextBlock());
-            player2.checkForMagicStone();
+            player2.checkForAutoPush();
 
             FallingBlock fallingBlock = player2.getFallingBlock();
             boolean could = fallingBlock.moveDown(false);
@@ -98,8 +99,9 @@ public class Game {
 
                 if (fallingBlock.isLose()) {
                     SoundUtils.playSound("boardSetException");
+                    player1.destroyFallingBlock();
                     autoFallService2.shutdown();
-                    autoFallService.shutdown();
+                    //autoFallService.shutdown();
                     timeService.shutdown();
                 } else {
                     nextFallingBlock(player2);
@@ -115,7 +117,7 @@ public class Game {
             gameView.getBoardView(2).paintFallingBlock(player2.getFallingBlock());
             updateScoreViews(player1);
             updateScoreViews(player2);
-        }, 50, 20, TimeUnit.MILLISECONDS);
+        }, 50, 50, TimeUnit.MILLISECONDS);
 
 
         // MUSIC
@@ -136,20 +138,7 @@ public class Game {
     }
 
     private void updateNextBlock(Player player, boolean delay){
-        Block block = blockGenerator.getNext(player.getBlockIndex());
-        player.setNextBlock(block);
-        player.incrementBlockIndex();
-
-        new Thread(() -> {
-            if (delay) try {
-                Thread.sleep(500);
-            } catch (InterruptedException e){
-                e.printStackTrace();
-            }
-
-            //gameView.getMainScoreView(player.getNumber()).setNumber(player.getMainScore());
-            //gameView.getSmallScoreView(player.getNumber()).setNumber(player.getSmallScore());
-        }).start();
+        player.changeNextBlock();
     }
 
     public boolean isStarted() {

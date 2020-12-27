@@ -1,5 +1,6 @@
 package cs10.apps.columns.model;
 
+import cs10.apps.columns.core.BlockGenerator;
 import cs10.apps.columns.core.Board;
 import cs10.apps.columns.sound.SoundUtils;
 import cs10.apps.columns.view.BallColor;
@@ -9,8 +10,7 @@ public class Player {
     private int mainScore;
     private int smallScore;
     private int blockIndex;
-    private Block nextBlock;
-    private FallingBlock fallingBlock;
+    private FallingBlock nextBlock, fallingBlock;
     private final Board board;
     private Player otherPlayerReference;
 
@@ -30,10 +30,6 @@ public class Player {
 
     public void incrementMainScore(int delta){
         mainScore = Math.min(mainScore + delta, 30);
-
-        if (cpu && !waitingForPushing){
-            if (mainScore > 19 || height > 10) push();
-        }
     }
 
     public void incrementSmallScore(int delta){
@@ -41,18 +37,31 @@ public class Player {
         auxiliarySmallScore += delta;
     }
 
-    public void checkForMagicStone(){
-        if (auxiliarySmallScore >= 20){
-            auxiliarySmallScore = 0;
-            SoundUtils.playSound("magicStone");
-            board.explodeRandomColor();
+    public void checkForAutoPush(){
+
+        if (!waitingForPushing){
+            if ((mainScore >= 16 && mainScore <= 24) || height >= Board.MAX_Y - 3) push();
         }
     }
 
     public void nextFallingBlock(){
-        setFallingBlock(new FallingBlock(nextBlock, board, 2, cpu));
+        AutoMoveParameters parameters = new AutoMoveParameters();
 
         if (cpu) {
+            if (nextBlock.getMagicStone() != null) {
+                parameters.setTargetColumn(2);
+                parameters.setAutoRotation(true);
+
+                switch (board.getRecommendedMagicStoneAction()) {
+                    case DOWN_TRIANGLE -> parameters.setTargetRotations(3);
+                    case SQUARE -> parameters.setTargetRotations(1);
+                    case UP_TRIANGLE -> parameters.setTargetRotations(2);
+                }
+
+                fallingBlock = nextBlock;
+                fallingBlock.setParameters(parameters);
+                return;
+            }
 
             BallColor repeated = nextBlock.containsRepeatedBall();
             boolean needsToRotate = repeated != null;
@@ -72,26 +81,26 @@ public class Player {
                 if (targetBall > 0) needsToRotate = true;
             } else rotateTwoColorsToDown = true;
 
-            fallingBlock.setTargetColumn(column);
+            //fallingBlock.setTargetColumn(column);
+            parameters.setTargetColumn(column);
 
             if (needsToRotate){
-                fallingBlock.setAutoRotation(true);
-                fallingBlock.setRotateTwoColorsDown(rotateTwoColorsToDown);
+                //fallingBlock.setAutoRotation(true);
+                parameters.setAutoRotation(true);
+
+                //fallingBlock.setRotateTwoColorsDown(rotateTwoColorsToDown);
+                parameters.setRotateTwoColorsDown(rotateTwoColorsToDown);
 
                 if (targetBall > 0){
                     if (targetBall == 3) targetBall = 0;
-                    fallingBlock.setTargetRotations(3-targetBall);
-                    //int count = 3 - targetBall;
-                    //for (int i=0; i<count; i++) getFallingBlock().rotate();
-                } /*else {
-                    if (rotateTwoColorsToDown) while (!getFallingBlock().sameColor(1,2))
-                        getFallingBlock().rotate();
-                    else while (!getFallingBlock().sameColor(0,1))
-                        getFallingBlock().rotate();
-                }*/
+                    //fallingBlock.setTargetRotations(3-targetBall);
+                    parameters.setTargetRotations(3-targetBall);
+                }
             }
-        }
 
+            fallingBlock = nextBlock;
+            fallingBlock.setParameters(parameters);
+        }
     }
 
     public int getNumber() {
@@ -113,12 +122,7 @@ public class Player {
                     int lines = mainScore / 10;
                     board.decreaseLines(lines);
                     otherPlayerReference.getBoard().increaseLines(lines);
-
-                    if (otherPlayerReference.getFallingBlock().getPosition().getY() > 0){
-                        SoundUtils.playSound("destroyFallingBlock");
-                        otherPlayerReference.nextFallingBlock();
-                    }
-
+                    otherPlayerReference.destroyFallingBlock();
                     waitingForPushing = false;
                     mainScore -= lines * 10;
                 } catch (InterruptedException e){
@@ -136,21 +140,25 @@ public class Player {
         return blockIndex;
     }
 
-    public Block getNextBlock() {
+    public FallingBlock getNextBlock() {
         return nextBlock;
     }
 
     public void setNextBlock(Block nextBlock) {
-        this.nextBlock = nextBlock;
+        boolean magicStone = false;
+
+        if (getAuxiliarySmallScore() >= MagicStone.OFFSET){
+            setAuxiliarySmallScore(0);
+            magicStone = true;
+            SoundUtils.playSound("magicStone");
+        }
+
+        this.nextBlock = new FallingBlock(nextBlock, board, cpu, magicStone);
     }
 
     public FallingBlock getFallingBlock() {
         while (fallingBlock == null) System.out.println("I'm waiting for falling block");
         return fallingBlock;
-    }
-
-    public void setFallingBlock(FallingBlock fallingBlock) {
-        this.fallingBlock = fallingBlock;
     }
 
     public Board getBoard() {
@@ -167,5 +175,37 @@ public class Player {
 
     public void setOtherPlayerReference(Player otherPlayerReference) {
         this.otherPlayerReference = otherPlayerReference;
+    }
+
+    public void destroyFallingBlock(){
+        if (fallingBlock.getPosition().getY() >= 0){
+            SoundUtils.playSound("destroyFallingBlock");
+            System.out.println(this + " falling block destroyed");
+            nextFallingBlock();
+            changeNextBlock();
+        }
+    }
+
+    public void changeNextBlock(){
+        Block block = BlockGenerator.getNext(getBlockIndex());
+        incrementBlockIndex();
+        setNextBlock(block);
+    }
+
+    public Player getOtherPlayerReference() {
+        return otherPlayerReference;
+    }
+
+    public int getAuxiliarySmallScore() {
+        return auxiliarySmallScore;
+    }
+
+    public void setAuxiliarySmallScore(int auxiliarySmallScore) {
+        this.auxiliarySmallScore = auxiliarySmallScore;
+    }
+
+    @Override
+    public String toString() {
+        return "Player " + number;
     }
 }
